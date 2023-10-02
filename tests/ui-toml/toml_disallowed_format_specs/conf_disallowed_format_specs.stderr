@@ -1,0 +1,95 @@
+error: format trait `Debug` is not allowed for type `Address` according to config
+  --> $DIR/conf_disallowed_format_specs.rs:22:29
+   |
+LL |     let _ = format!("{:?}", Address);
+   |                             ^^^^^^^
+   |
+   = note: `-D clippy::disallowed-format-specs` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::disallowed_format_specs)]`
+
+error: format trait `LowerHex` is not allowed for type `Address` according to config
+  --> $DIR/conf_disallowed_format_specs.rs:24:29
+   |
+LL |     let _ = format!("{:x}", Address);
+   |                             ^^^^^^^
+
+error: format trait `LowerHex` is not allowed for type `Address` according to config
+  --> $DIR/conf_disallowed_format_specs.rs:26:30
+   |
+LL |     let _ = format!("{:#x}", Address);
+   |                              ^^^^^^^
+
+error: format trait `UpperHex` is not allowed for type `Address` according to config
+  --> $DIR/conf_disallowed_format_specs.rs:28:29
+   |
+LL |     let _ = format!("{:X}", Address);
+   |                             ^^^^^^^
+
+error: format trait `UpperHex` is not allowed for type `Address` according to config
+  --> $DIR/conf_disallowed_format_specs.rs:30:30
+   |
+LL |     let _ = format!("{:#X}", Address);
+   |                              ^^^^^^^
+
+error: format trait `Debug` is not allowed for type `Address` according to config
+  --> $DIR/conf_disallowed_format_specs.rs:35:29
+   |
+LL |     let _ = format!("{:?}", x);
+   |                             ^
+
+error: format trait `LowerHex` is not allowed for type `Address` according to config
+  --> $DIR/conf_disallowed_format_specs.rs:37:29
+   |
+LL |     let _ = format!("{:x}", x);
+   |                             ^
+
+error: format trait `LowerHex` is not allowed for type `Address` according to config
+  --> $DIR/conf_disallowed_format_specs.rs:39:30
+   |
+LL |     let _ = format!("{:#x}", x);
+   |                              ^
+
+error: format trait `UpperHex` is not allowed for type `Address` according to config
+  --> $DIR/conf_disallowed_format_specs.rs:41:29
+   |
+LL |     let _ = format!("{:X}", x);
+   |                             ^
+
+error: format trait `UpperHex` is not allowed for type `Address` according to config
+  --> $DIR/conf_disallowed_format_specs.rs:43:30
+   |
+LL |     let _ = format!("{:#X}", x);
+   |                              ^
+
+error: format trait `Debug` is not allowed for type `Address` according to config
+  --> $DIR/conf_disallowed_format_specs.rs:48:23
+   |
+LL |     let _ = format!("{x:?}");
+   |                       ^
+
+error: format trait `LowerHex` is not allowed for type `Address` according to config
+  --> $DIR/conf_disallowed_format_specs.rs:50:23
+   |
+LL |     let _ = format!("{x:x}");
+   |                       ^
+
+error: format trait `LowerHex` is not allowed for type `Address` according to config
+  --> $DIR/conf_disallowed_format_specs.rs:52:23
+   |
+LL |     let _ = format!("{x:#x}");
+   |                       ^
+
+error: format trait `UpperHex` is not allowed for type `Address` according to config
+  --> $DIR/conf_disallowed_format_specs.rs:54:23
+   |
+LL |     let _ = format!("{x:X}");
+   |                       ^
+
+error: format trait `UpperHex` is not allowed for type `Address` according to config
+  --> $DIR/conf_disallowed_format_specs.rs:56:23
+   |
+LL |     let _ = format!("{x:#X}");
+   |                       ^
+
+error: aborting due to 15 previous errors
+

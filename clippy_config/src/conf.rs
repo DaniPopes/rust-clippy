@@ -40,6 +40,79 @@ const DEFAULT_DOC_VALID_IDENTS: &[&str] = &[
 const DEFAULT_DISALLOWED_NAMES: &[&str] = &["foo", "baz", "quux"];
 const DEFAULT_ALLOWED_IDENTS_BELOW_MIN_CHARS: &[&str] = &["i", "j", "x", "y", "z", "w", "n"];
 
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct DisallowedFormatSpec {
+    pub path: String,
+    #[serde(with = "vec_fmt_trait")]
+    pub specs: Vec<rustc_ast::FormatTrait>,
+    pub reason: Option<String>,
+}
+
+mod vec_fmt_trait {
+    use super::*;
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Vec<rustc_ast::FormatTrait>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        Ok(Vec::<FormatTraitDef>::deserialize(deserializer)?
+            .into_iter()
+            .map(|def| def.into())
+            .collect())
+    }
+
+    pub fn serialize<S>(specs: &[rustc_ast::FormatTrait], serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let defs = specs.iter().map(|spec| FormatTraitDef::from(*spec)).collect::<Vec<_>>();
+        defs.serialize(serializer)
+    }
+}
+
+#[derive(Deserialize, Serialize)]
+enum FormatTraitDef {
+    Display,
+    Debug,
+    LowerExp,
+    UpperExp,
+    Octal,
+    Pointer,
+    Binary,
+    LowerHex,
+    UpperHex,
+}
+
+impl FormatTraitDef {
+    fn into(self) -> rustc_ast::FormatTrait {
+        match self {
+            Self::Display => rustc_ast::FormatTrait::Display,
+            Self::Debug => rustc_ast::FormatTrait::Debug,
+            Self::LowerExp => rustc_ast::FormatTrait::LowerExp,
+            Self::UpperExp => rustc_ast::FormatTrait::UpperExp,
+            Self::Octal => rustc_ast::FormatTrait::Octal,
+            Self::Pointer => rustc_ast::FormatTrait::Pointer,
+            Self::Binary => rustc_ast::FormatTrait::Binary,
+            Self::LowerHex => rustc_ast::FormatTrait::LowerHex,
+            Self::UpperHex => rustc_ast::FormatTrait::UpperHex,
+        }
+    }
+
+    fn from(x: rustc_ast::FormatTrait) -> Self {
+        match x {
+            rustc_ast::FormatTrait::Display => Self::Display,
+            rustc_ast::FormatTrait::Debug => Self::Debug,
+            rustc_ast::FormatTrait::LowerExp => Self::LowerExp,
+            rustc_ast::FormatTrait::UpperExp => Self::UpperExp,
+            rustc_ast::FormatTrait::Octal => Self::Octal,
+            rustc_ast::FormatTrait::Pointer => Self::Pointer,
+            rustc_ast::FormatTrait::Binary => Self::Binary,
+            rustc_ast::FormatTrait::LowerHex => Self::LowerHex,
+            rustc_ast::FormatTrait::UpperHex => Self::UpperHex,
+        }
+    }
+}
+
 /// Conf with parse errors
 #[derive(Default)]
 struct TryConf {
@@ -383,6 +456,10 @@ define_Conf! {
     ///
     /// Whether to allow certain wildcard imports (prelude, super in tests).
     (warn_on_all_wildcard_imports: bool = false),
+    /// Lint: DISALLOWED_FORMAT_SPECS.
+    ///
+    /// The list of disallowed macros, written as fully qualified paths.
+    (disallowed_format_specs: Vec<DisallowedFormatSpec> = Vec::new()),
     /// Lint: DISALLOWED_MACROS.
     ///
     /// The list of disallowed macros, written as fully qualified paths.

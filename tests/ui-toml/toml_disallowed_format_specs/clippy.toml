@@ -1,0 +1,7 @@
+disallowed-format-specs = [
+    { path = "conf_disallowed_format_specs::Address", specs = [
+        "Debug",
+        "LowerHex",
+        "UpperHex",
+    ] },
+]

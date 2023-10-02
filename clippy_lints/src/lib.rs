@@ -104,6 +104,7 @@ mod default_union_representation;
 mod dereference;
 mod derivable_impls;
 mod derive;
+mod disallowed_format_specs;
 mod disallowed_macros;
 mod disallowed_methods;
 mod disallowed_names;
@@ -580,6 +581,7 @@ pub fn register_lints(store: &mut rustc_lint::LintStore, conf: &'static Conf) {
 
         blacklisted_names: _,
         cyclomatic_complexity_threshold: _,
+        disallowed_format_specs: _,
     } = *conf;
     let msrv = || msrv.clone();
 
@@ -1097,6 +1099,12 @@ pub fn register_lints(store: &mut rustc_lint::LintStore, conf: &'static Conf) {
         Box::new(thread_local_initializer_can_be_made_const::ThreadLocalInitializerCanBeMadeConst::new(msrv()))
     });
     store.register_late_pass(move |_| Box::new(incompatible_msrv::IncompatibleMsrv::new(msrv())));
+    let disallowed_format_specs = conf.disallowed_format_specs.clone();
+    store.register_late_pass(move |_| {
+        Box::new(disallowed_format_specs::DisallowedFormatSpecs::new(
+            disallowed_format_specs.clone(),
+        ))
+    });
     // add lints here, do not remove this comment, it's used in `new_lint`
 }
 
