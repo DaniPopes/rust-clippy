@@ -204,3 +204,8 @@ mod with_ty_alias {
     // in this test.
     fn alias_ty_is_projection(bar: <() as FooTrait>::Foo) {}
 }
+
+fn generic_forget<T>(val: T) {
+    //~^ ERROR: this could be a `const fn`
+    std::mem::forget(val);
+}

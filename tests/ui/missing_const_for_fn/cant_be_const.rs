@@ -199,3 +199,31 @@ mod with_ty_alias {
         let _: Foo = 1;
     }
 }
+
+fn unreachable_branch() {
+    if false {
+        eprintln!();
+    }
+}
+
+// FIXME: https://github.com/rust-lang/rust-clippy/issues/13015
+#[allow(irrefutable_let_patterns)]
+fn unreachable_pattern() {
+    let x = 1 else {
+        eprintln!();
+        return;
+    };
+}
+
+// https://github.com/rust-lang/rust-clippy/issues/13016
+fn generic_forget_with_borrow<T>(val: T) {
+    let _ = &val;
+    std::mem::forget(val);
+}
+
+// FIXME: https://github.com/rust-lang/rust-clippy/issues/13013
+// fn const_cell_drop() {
+//     use std::cell::Cell;
+//     const NONE_CELL_STRING: Option<Cell<String>> = None;
+//     let _: &'static Option<Cell<String>> = &NONE_CELL_STRING;
+// }

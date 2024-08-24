@@ -9,18 +9,6 @@ LL | const REF: &i32 = &ARR[idx()]; // This should be linted, since `suppress-re
    = note: `-D clippy::indexing-slicing` implied by `-D warnings`
    = help: to override `-D warnings` add `#[allow(clippy::indexing_slicing)]`
 
-error[E0080]: evaluation of `main::{constant#3}` failed
-  --> tests/ui/indexing_slicing_index.rs:67:14
-   |
-LL |     const { &ARR[idx4()] };
-   |              ^^^^^^^^^^^ index out of bounds: the length is 2 but the index is 4
-
-note: erroneous constant encountered
-  --> tests/ui/indexing_slicing_index.rs:67:5
-   |
-LL |     const { &ARR[idx4()] };
-   |     ^^^^^^^^^^^^^^^^^^^^^^
-
 error: indexing may panic
   --> tests/ui/indexing_slicing_index.rs:48:5
    |
@@ -120,6 +108,5 @@ error: index is out of bounds
 LL |     let _ = x[4];
    |             ^^^^
 
-error: aborting due to 15 previous errors
+error: aborting due to 14 previous errors
 
-For more information about this error, try `rustc --explain E0080`.

@@ -3,6 +3,7 @@ use std::{fmt, ops};
 use clippy_config::Conf;
 use clippy_utils::diagnostics::span_lint_and_then;
 use clippy_utils::fn_has_unsatisfiable_preds;
+use clippy_utils::mir::mir_for_clippy;
 use clippy_utils::source::SpanRangeExt;
 use rustc_hir::def_id::LocalDefId;
 use rustc_hir::intravisit::FnKind;
@@ -149,7 +150,7 @@ impl<'tcx> LateLintPass<'tcx> for LargeStackFrames {
             return;
         }
 
-        let mir = cx.tcx.optimized_mir(def_id);
+        let mir = mir_for_clippy(cx.tcx, local_def_id);
         let param_env = cx.tcx.param_env(def_id);
 
         let sizes_of_locals = || {

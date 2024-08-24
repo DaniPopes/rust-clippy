@@ -30,7 +30,7 @@ pub(super) fn check<'tcx>(cx: &LateContext<'tcx>, expr: &'tcx Expr<'_>, receiver
         // that this guard only exists to protect a section of code
         // rather than the contained data
         && !ident.as_str().starts_with('_')
-        && let Some(mir) = enclosing_mir(cx.tcx, expr.hir_id)
+        && let Some(mir) = &enclosing_mir(cx.tcx, expr.hir_id)
         && let Some((local, _)) = mir
             .local_decls
             .iter_enumerated()

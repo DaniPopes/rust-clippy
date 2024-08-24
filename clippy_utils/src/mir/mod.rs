@@ -1,3 +1,6 @@
+use std::sync::OnceLock;
+
+use rustc_hir::def_id::{LocalDefId, LocalDefIdMap};
 use rustc_hir::{Expr, HirId};
 use rustc_index::bit_set::BitSet;
 use rustc_middle::mir::visit::{MutatingUseContext, NonMutatingUseContext, PlaceContext, Visitor};
@@ -12,6 +15,99 @@ pub use possible_borrower::PossibleBorrowerMap;
 mod possible_origin;
 
 mod transitive_relation;
+
+#[allow(dead_code)]
+pub struct MirForClippy<'tcx> {
+    tcx: TyCtxt<'tcx>,
+    def_id: LocalDefId,
+    body: MirForClippyInner<'tcx>,
+}
+
+enum MirForClippyInner<'tcx> {
+    Unoptimized(rustc_data_structures::sync::MappedReadGuard<'tcx, Body<'tcx>>),
+    Optimized(&'tcx Body<'tcx>),
+}
+
+impl<'tcx> MirForClippy<'tcx> {
+    #[inline]
+    pub fn body(&self) -> &Body<'tcx> {
+        match self.body {
+            MirForClippyInner::Unoptimized(ref body) => &**body,
+            MirForClippyInner::Optimized(body) => body,
+        }
+    }
+
+    #[inline]
+    pub fn cloned_body(&self) -> &'tcx Body<'tcx> {
+        match self.body {
+            MirForClippyInner::Unoptimized(ref body) => {
+                static CACHE: OnceLock<std::sync::Mutex<LocalDefIdMap<&'static Body<'static>>>> = OnceLock::new();
+                unsafe fn extend_in<'tcx>(body: &'tcx Body<'tcx>) -> &'static Body<'static> {
+                    std::mem::transmute::<&'tcx Body<'tcx>, &'static Body<'static>>(body)
+                }
+                unsafe fn extend_out<'tcx>(body: &'static Body<'static>) -> &'tcx Body<'tcx> {
+                    std::mem::transmute::<&'static Body<'static>, &'tcx Body<'tcx>>(body)
+                }
+                let mut lock = CACHE.get_or_init(Default::default).lock().unwrap();
+                // SAFETY: `'static` lifetimes are a placeholder for `'tcx` lifetimes.
+                unsafe {
+                    extend_out(
+                        lock.entry(self.def_id)
+                            .or_insert_with(|| extend_in(&*self.tcx.arena.alloc((**body).clone()))),
+                    )
+                }
+            },
+            MirForClippyInner::Optimized(body) => body,
+        }
+    }
+}
+
+impl<'tcx> std::ops::Deref for MirForClippy<'tcx> {
+    type Target = Body<'tcx>;
+
+    #[inline]
+    fn deref(&self) -> &Self::Target {
+        self.body()
+    }
+}
+
+/// Returns the unoptimized MIR [`Body`] for the given [`LocalDefId`].
+///
+/// Use this function instead of `tcx.optimized_mir` to avoid MIR optimizations which affect lints.
+#[inline]
+pub fn mir_for_clippy<'tcx>(tcx: TyCtxt<'tcx>, def_id: LocalDefId) -> MirForClippy<'tcx> {
+    MirForClippy {
+        tcx,
+        def_id,
+        body: mir_for_clippy_inner(tcx, def_id),
+    }
+}
+
+fn mir_for_clippy_inner<'tcx>(tcx: TyCtxt<'tcx>, def_id: LocalDefId) -> MirForClippyInner<'tcx> {
+    // These might already be stolen for const fns and coroutines (e.g. async), but should
+    // be available for most others.
+
+    // MIR for const-checking (`mir_const_qualif`).
+    let body = tcx.mir_built(def_id);
+    if !body.is_stolen() {
+        return MirForClippyInner::Unoptimized(body.borrow());
+    }
+
+    // MIR for borrow-checking (`mir_borrowck`).
+    let (body, _) = tcx.mir_promoted(def_id);
+    if !body.is_stolen() {
+        return MirForClippyInner::Unoptimized(body.borrow());
+    }
+
+    // MIR right before CTFE/optimizations.
+    let body = tcx.mir_drops_elaborated_and_const_checked(def_id);
+    if !body.is_stolen() {
+        return MirForClippyInner::Unoptimized(body.borrow());
+    }
+
+    // eprintln!("calling optimized_mir for {def_id:#?}");
+    MirForClippyInner::Optimized(tcx.optimized_mir(def_id))
+}
 
 #[derive(Clone, Debug, Default)]
 pub struct LocalUsage {
@@ -135,10 +231,10 @@ pub fn used_exactly_once(mir: &Body<'_>, local: Local) -> Option<bool> {
 
 /// Returns the `mir::Body` containing the node associated with `hir_id`.
 #[allow(clippy::module_name_repetitions)]
-pub fn enclosing_mir(tcx: TyCtxt<'_>, hir_id: HirId) -> Option<&Body<'_>> {
+pub fn enclosing_mir<'tcx>(tcx: TyCtxt<'tcx>, hir_id: HirId) -> Option<MirForClippy<'tcx>> {
     let body_owner_local_def_id = tcx.hir().enclosing_body_owner(hir_id);
     if tcx.hir().body_owner_kind(body_owner_local_def_id).is_fn_or_closure() {
-        Some(tcx.optimized_mir(body_owner_local_def_id.to_def_id()))
+        Some(mir_for_clippy(tcx, body_owner_local_def_id))
     } else {
         None
     }

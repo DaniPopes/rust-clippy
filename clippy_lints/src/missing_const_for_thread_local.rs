@@ -2,6 +2,7 @@ use clippy_config::msrvs::{self, Msrv};
 use clippy_config::Conf;
 use clippy_utils::diagnostics::span_lint_and_sugg;
 use clippy_utils::macros::macro_backtrace;
+use clippy_utils::mir::mir_for_clippy;
 use clippy_utils::qualify_min_const_fn::is_min_const_fn;
 use clippy_utils::source::snippet;
 use clippy_utils::{fn_has_unsatisfiable_preds, peel_blocks};
@@ -96,8 +97,8 @@ fn is_unreachable(cx: &LateContext<'_>, expr: &Expr<'_>) -> bool {
 fn initializer_can_be_made_const(cx: &LateContext<'_>, defid: rustc_span::def_id::DefId, msrv: &Msrv) -> bool {
     // Building MIR for `fn`s with unsatisfiable preds results in ICE.
     if !fn_has_unsatisfiable_preds(cx, defid)
-        && let mir = cx.tcx.optimized_mir(defid)
-        && let Ok(()) = is_min_const_fn(cx.tcx, mir, msrv)
+        && let mir = mir_for_clippy(cx.tcx, defid.expect_local())
+        && is_min_const_fn(cx.tcx, &mir, msrv)
     {
         return true;
     }

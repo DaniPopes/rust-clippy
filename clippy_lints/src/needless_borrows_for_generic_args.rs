@@ -351,7 +351,7 @@ fn referent_used_exactly_once<'tcx>(
 ) -> bool {
     if let Some(mir) = enclosing_mir(cx.tcx, reference.hir_id)
         && let Some(local) = expr_local(cx.tcx, reference)
-        && let [location] = *local_assignments(mir, local).as_slice()
+        && let [location] = *local_assignments(&mir, local).as_slice()
         && let block_data = &mir.basic_blocks[location.block]
         && let Some(statement) = block_data.statements.get(location.statement_index)
         && let StatementKind::Assign(box (_, Rvalue::Ref(_, _, place))) = statement.kind
@@ -362,14 +362,14 @@ fn referent_used_exactly_once<'tcx>(
             .last()
             .map_or(true, |&(local_def_id, _)| local_def_id != body_owner_local_def_id)
         {
-            possible_borrowers.push((body_owner_local_def_id, PossibleBorrowerMap::new(cx, mir)));
+            possible_borrowers.push((body_owner_local_def_id, PossibleBorrowerMap::new(cx, mir.cloned_body())));
         }
         let possible_borrower = &mut possible_borrowers.last_mut().unwrap().1;
         // If `only_borrowers` were used here, the `copyable_iterator::warn` test would fail. The reason is
         // that `PossibleBorrowerVisitor::visit_terminator` considers `place.local` a possible borrower of
         // itself. See the comment in that method for an explanation as to why.
         possible_borrower.bounded_borrowers(&[local], &[local, place.local], place.local, location)
-            && used_exactly_once(mir, place.local).unwrap_or(false)
+            && used_exactly_once(&mir, place.local).unwrap_or(false)
     } else {
         false
     }

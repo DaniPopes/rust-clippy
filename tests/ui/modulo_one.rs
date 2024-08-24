@@ -11,11 +11,8 @@ fn main() {
     10 % -1;
     //~^ ERROR: any number modulo -1 will panic/overflow or result in 0
     10 % 2;
-    // also caught by rustc
     i32::MIN % (-1);
-    //~^ ERROR: this operation will panic at runtime
-    //~| NOTE: `#[deny(unconditional_panic)]` on by default
-    //~| ERROR: any number modulo -1 will panic/overflow or result in 0
+    //~^ ERROR: any number modulo -1 will panic/overflow or result in 0
 
     const ONE: u32 = 1 * 1;
     const NEG_ONE: i64 = 1 - 2;
@@ -31,8 +28,7 @@ fn main() {
     5 % STATIC_NEG_ONE;
     // also caught by rustc
     INT_MIN % NEG_ONE;
-    //~^ ERROR: this operation will panic at runtime
-    //~| ERROR: any number modulo -1 will panic/overflow or result in 0
+    //~^ ERROR: any number modulo -1 will panic/overflow or result in 0
     // Not caught by lint, we don't look into static items, even if entirely immutable.
     INT_MIN % STATIC_NEG_ONE;
 }

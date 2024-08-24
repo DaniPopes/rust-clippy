@@ -1,6 +1,7 @@
 use clippy_config::msrvs::{self, Msrv};
 use clippy_config::Conf;
 use clippy_utils::diagnostics::span_lint_and_then;
+use clippy_utils::mir::mir_for_clippy;
 use clippy_utils::qualify_min_const_fn::is_min_const_fn;
 use clippy_utils::{fn_has_unsatisfiable_preds, is_entrypoint_fn, is_from_proc_macro, trait_ref_of_method};
 use rustc_errors::Applicability;
@@ -156,9 +157,9 @@ impl<'tcx> LateLintPass<'tcx> for MissingConstForFn {
             return;
         }
 
-        let mir = cx.tcx.optimized_mir(def_id);
+        let mir = mir_for_clippy(cx.tcx, def_id);
 
-        if let Ok(()) = is_min_const_fn(cx.tcx, mir, &self.msrv)
+        if is_min_const_fn(cx.tcx, &mir, &self.msrv)
             && let hir::Node::Item(hir::Item { vis_span, .. }) | hir::Node::ImplItem(hir::ImplItem { vis_span, .. }) =
                 cx.tcx.hir_node_by_def_id(def_id)
         {

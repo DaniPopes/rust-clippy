@@ -25,7 +25,13 @@ use std::borrow::Cow;
 
 type McfResult = Result<(), (Span, Cow<'static, str>)>;
 
-pub fn is_min_const_fn<'tcx>(tcx: TyCtxt<'tcx>, body: &Body<'tcx>, msrv: &Msrv) -> McfResult {
+pub fn is_min_const_fn<'tcx>(tcx: TyCtxt<'tcx>, body: &Body<'tcx>, msrv: &Msrv) -> bool {
+    let r = is_min_const_fn_inner(tcx, body, msrv);
+    // eprintln!("is_min_const_fn({:?}, {msrv}) -> {r:?}", body.source.def_id());
+    r.is_ok()
+}
+
+fn is_min_const_fn_inner<'tcx>(tcx: TyCtxt<'tcx>, body: &Body<'tcx>, msrv: &Msrv) -> McfResult {
     let def_id = body.source.def_id();
 
     for local in &body.local_decls {

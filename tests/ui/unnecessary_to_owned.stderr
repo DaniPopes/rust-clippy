@@ -48,18 +48,6 @@ note: this value is dropped without further use
 LL |     require_str(&String::from("x").to_string());
    |                  ^^^^^^^^^^^^^^^^^
 
-error: redundant clone
-  --> tests/ui/unnecessary_to_owned.rs:161:39
-   |
-LL |     require_slice(&[String::from("x")].to_owned());
-   |                                       ^^^^^^^^^^^ help: remove this
-   |
-note: this value is dropped without further use
-  --> tests/ui/unnecessary_to_owned.rs:161:20
-   |
-LL |     require_slice(&[String::from("x")].to_owned());
-   |                    ^^^^^^^^^^^^^^^^^^^
-
 error: unnecessary use of `into_owned`
   --> tests/ui/unnecessary_to_owned.rs:66:36
    |
@@ -589,5 +577,5 @@ error: unnecessary use of `to_vec`
 LL |     s.remove(&(&["b"]).to_vec());
    |              ^^^^^^^^^^^^^^^^^^ help: replace it with: `(&["b"]).as_slice()`
 
-error: aborting due to 88 previous errors
+error: aborting due to 87 previous errors
 
