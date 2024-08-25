@@ -3,12 +3,13 @@
 // of terminologies might not be relevant in the context of Clippy. Note that its behavior might
 // differ from the time of `rustc` even if the name stays the same.
 
+use crate::mir::{mir_for_clippy_phase, MirForClippy, MirPhase};
 use clippy_config::msrvs::{self, Msrv};
 use hir::LangItem;
 use rustc_attr::StableSince;
 use rustc_const_eval::check_consts::ConstCx;
 use rustc_hir as hir;
-use rustc_hir::def_id::DefId;
+use rustc_hir::def_id::{DefId, LocalDefId};
 use rustc_infer::infer::TyCtxtInferExt;
 use rustc_infer::traits::Obligation;
 use rustc_middle::mir::{
@@ -17,7 +18,7 @@ use rustc_middle::mir::{
 };
 use rustc_middle::traits::{BuiltinImplSource, ImplSource, ObligationCause};
 use rustc_middle::ty::adjustment::PointerCoercion;
-use rustc_middle::ty::{self, GenericArgKind, TraitRef, Ty, TyCtxt};
+use rustc_middle::ty::{self, GenericArgKind, TraitRef, Ty, TyCtxt, TypeVisitableExt};
 use rustc_span::symbol::sym;
 use rustc_span::Span;
 use rustc_trait_selection::traits::{ObligationCtxt, SelectionContext};
@@ -25,9 +26,29 @@ use std::borrow::Cow;
 
 type McfResult = Result<(), (Span, Cow<'static, str>)>;
 
-pub fn is_min_const_fn<'tcx>(tcx: TyCtxt<'tcx>, body: &Body<'tcx>, msrv: &Msrv) -> bool {
+pub fn min_const_fn_body<'tcx>(tcx: TyCtxt<'tcx>, def_id: LocalDefId) -> MirForClippy<'tcx> {
+    let body = mir_for_clippy_phase(tcx, def_id, MirPhase::Built);
+    if body.phase() < MirPhase::Runtime && body_needs_drop_elaboration(tcx, &body) {
+        drop(body);
+        return mir_for_clippy_phase(tcx, def_id, MirPhase::Runtime);
+    }
+    body
+}
+
+fn body_needs_drop_elaboration<'tcx>(tcx: TyCtxt<'tcx>, body: &Body<'tcx>) -> bool {
+    let param_env = tcx.param_env(body.source.def_id());
+    body.local_decls
+        .iter()
+        .any(|local| local.ty.has_param() || local.ty.needs_drop(tcx, param_env))
+}
+
+pub fn is_min_const_fn(tcx: TyCtxt<'_>, def_id: LocalDefId, msrv: &Msrv) -> bool {
+    is_body_min_const_fn(tcx, &min_const_fn_body(tcx, def_id), msrv)
+}
+
+pub fn is_body_min_const_fn<'tcx>(tcx: TyCtxt<'tcx>, body: &Body<'tcx>, msrv: &Msrv) -> bool {
     let r = is_min_const_fn_inner(tcx, body, msrv);
-    // eprintln!("is_min_const_fn({:?}, {msrv}) -> {r:?}", body.source.def_id());
+    // eprintln!("is_body_min_const_fn({:?}, {msrv}) -> {r:?}", body.source.def_id());
     r.is_ok()
 }
 

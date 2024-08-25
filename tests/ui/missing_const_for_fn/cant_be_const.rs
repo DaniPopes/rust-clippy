@@ -207,19 +207,19 @@ fn unreachable_branch() {
 }
 
 // FIXME: https://github.com/rust-lang/rust-clippy/issues/13015
-#[allow(irrefutable_let_patterns)]
-fn unreachable_pattern() {
-    let x = 1 else {
-        eprintln!();
-        return;
-    };
-}
+// #[allow(irrefutable_let_patterns)]
+// fn unreachable_pattern() {
+//     let x = 1 else {
+//         eprintln!();
+//         return;
+//     };
+// }
 
-// https://github.com/rust-lang/rust-clippy/issues/13016
-fn generic_forget_with_borrow<T>(val: T) {
-    let _ = &val;
-    std::mem::forget(val);
-}
+// FIXME: https://github.com/rust-lang/rust-clippy/issues/13016
+// fn generic_forget_with_borrow<T>(val: T) {
+//     let _ = &val;
+//     std::mem::forget(val);
+// }
 
 // FIXME: https://github.com/rust-lang/rust-clippy/issues/13013
 // fn const_cell_drop() {

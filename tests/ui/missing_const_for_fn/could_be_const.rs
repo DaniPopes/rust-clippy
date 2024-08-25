@@ -168,11 +168,13 @@ mod issue12677 {
     impl Wrapper {
         #[must_use]
         pub fn new(strings: Vec<String>) -> Self {
+            //~^ ERROR: this could be a `const fn`
             Self { strings }
         }
 
         #[must_use]
         pub fn empty() -> Self {
+            //~^ ERROR: this could be a `const fn`
             Self { strings: Vec::new() }
         }
     }
@@ -184,6 +186,7 @@ mod issue12677 {
 
     impl Other {
         pub fn new(text: String) -> Self {
+            //~^ ERROR: this could be a `const fn`
             let vec = Vec::new();
             Self { text, vec }
         }
@@ -203,6 +206,7 @@ mod with_ty_alias {
     // is. Because the associate ty could have no default, therefore would cause ICE, as demonstrated
     // in this test.
     fn alias_ty_is_projection(bar: <() as FooTrait>::Foo) {}
+    //~^ ERROR: this could be a `const fn`
 }
 
 fn generic_forget<T>(val: T) {

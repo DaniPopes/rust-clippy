@@ -174,11 +174,11 @@ error: redundant clone
 LL |     foo(&x.clone(), move || {
    |           ^^^^^^^^ help: remove this
    |
-note: cloned value is neither consumed nor mutated
+note: this value is dropped without further use
   --> tests/ui/redundant_clone.rs:209:10
    |
 LL |     foo(&x.clone(), move || {
-   |          ^^^^^^^^^
+   |          ^
 
 error: aborting due to 15 previous errors
 

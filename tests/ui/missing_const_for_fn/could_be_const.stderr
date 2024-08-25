@@ -87,6 +87,20 @@ LL | const unsafe fn four() -> i32 {
    | +++++
 
 error: this could be a `const fn`
+  --> tests/ui/missing_const_for_fn/could_be_const.rs:52:1
+   |
+LL | / fn generic<T>(t: T) -> T {
+LL | |
+LL | |     t
+LL | | }
+   | |_^
+   |
+help: make the function `const`
+   |
+LL | const fn generic<T>(t: T) -> T {
+   | +++++
+
+error: this could be a `const fn`
   --> tests/ui/missing_const_for_fn/could_be_const.rs:61:1
    |
 LL | / fn generic_arr<T: Copy>(t: [T; 1]) -> T {
@@ -219,7 +233,50 @@ LL |         const extern fn implicit_c() {}
    |         +++++
 
 error: this could be a `const fn`
-  --> tests/ui/missing_const_for_fn/could_be_const.rs:205:5
+  --> tests/ui/missing_const_for_fn/could_be_const.rs:170:9
+   |
+LL | /         pub fn new(strings: Vec<String>) -> Self {
+LL | |
+LL | |             Self { strings }
+LL | |         }
+   | |_________^
+   |
+help: make the function `const`
+   |
+LL |         pub const fn new(strings: Vec<String>) -> Self {
+   |             +++++
+
+error: this could be a `const fn`
+  --> tests/ui/missing_const_for_fn/could_be_const.rs:176:9
+   |
+LL | /         pub fn empty() -> Self {
+LL | |
+LL | |             Self { strings: Vec::new() }
+LL | |         }
+   | |_________^
+   |
+help: make the function `const`
+   |
+LL |         pub const fn empty() -> Self {
+   |             +++++
+
+error: this could be a `const fn`
+  --> tests/ui/missing_const_for_fn/could_be_const.rs:188:9
+   |
+LL | /         pub fn new(text: String) -> Self {
+LL | |
+LL | |             let vec = Vec::new();
+LL | |             Self { text, vec }
+LL | |         }
+   | |_________^
+   |
+help: make the function `const`
+   |
+LL |         pub const fn new(text: String) -> Self {
+   |             +++++
+
+error: this could be a `const fn`
+  --> tests/ui/missing_const_for_fn/could_be_const.rs:208:5
    |
 LL |     fn alias_ty_is_projection(bar: <() as FooTrait>::Foo) {}
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -229,5 +286,19 @@ help: make the function `const`
 LL |     const fn alias_ty_is_projection(bar: <() as FooTrait>::Foo) {}
    |     +++++
 
-error: aborting due to 17 previous errors
+error: this could be a `const fn`
+  --> tests/ui/missing_const_for_fn/could_be_const.rs:212:1
+   |
+LL | / fn generic_forget<T>(val: T) {
+LL | |
+LL | |     std::mem::forget(val);
+LL | | }
+   | |_^
+   |
+help: make the function `const`
+   |
+LL | const fn generic_forget<T>(val: T) {
+   | +++++
+
+error: aborting due to 22 previous errors
 

@@ -158,6 +158,12 @@ impl rustc_driver::Callbacks for ClippyCallbacks {
         // use for Clippy.
         config.opts.unstable_opts.mir_opt_level = Some(0);
         // config.opts.unstable_opts.dump_mir = Some("all".into());
+        // let disable_passes: &[&str] = &[];
+        // config
+        //     .opts
+        //     .unstable_opts
+        //     .mir_enable_passes
+        //     .extend(disable_passes.iter().map(|pass| (pass.to_string(), false)));
 
         // Disable flattening and inlining of format_args!(), so the HIR matches with the AST.
         config.opts.unstable_opts.flatten_format_args = false;

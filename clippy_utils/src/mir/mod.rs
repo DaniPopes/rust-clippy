@@ -20,6 +20,7 @@ mod transitive_relation;
 pub struct MirForClippy<'tcx> {
     tcx: TyCtxt<'tcx>,
     def_id: LocalDefId,
+    phase: MirPhase,
     body: MirForClippyInner<'tcx>,
 }
 
@@ -35,6 +36,12 @@ impl<'tcx> MirForClippy<'tcx> {
             MirForClippyInner::Unoptimized(ref body) => &**body,
             MirForClippyInner::Optimized(body) => body,
         }
+    }
+
+    /// Returns the phase of the MIR.
+    #[inline]
+    pub fn phase(&self) -> MirPhase {
+        self.phase
     }
 
     #[inline]
@@ -71,42 +78,88 @@ impl<'tcx> std::ops::Deref for MirForClippy<'tcx> {
     }
 }
 
+/// The phase of MIR to return.
+///
+/// Corresponds to MIR queries that may have had their results stolen by `optimized_mir`.
+#[derive(Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub enum MirPhase {
+    /// `mir_built`
+    #[default]
+    Built,
+    /// `mir_promoted`
+    Analysis,
+    /// `mir_drops_elaborated_and_const_checked`
+    Runtime,
+    /// `optimized_mir`
+    Optimized,
+}
+
 /// Returns the unoptimized MIR [`Body`] for the given [`LocalDefId`].
+///
+/// May return the optimized MIR if it was already computed.
 ///
 /// Use this function instead of `tcx.optimized_mir` to avoid MIR optimizations which affect lints.
 #[inline]
 pub fn mir_for_clippy<'tcx>(tcx: TyCtxt<'tcx>, def_id: LocalDefId) -> MirForClippy<'tcx> {
+    mir_for_clippy_phase(tcx, def_id, MirPhase::default())
+}
+
+/// Returns the unoptimized MIR [`Body`] for the given [`LocalDefId`].
+///
+/// Also accepts a minimum phase to return the MIR at.
+///
+/// See [`mir_for_clippy`] for more information.
+#[inline]
+pub fn mir_for_clippy_phase<'tcx>(tcx: TyCtxt<'tcx>, def_id: LocalDefId, min_phase: MirPhase) -> MirForClippy<'tcx> {
+    let (body, phase) = mir_for_clippy_inner(tcx, def_id, min_phase);
     MirForClippy {
         tcx,
         def_id,
-        body: mir_for_clippy_inner(tcx, def_id),
+        body,
+        phase,
     }
 }
 
-fn mir_for_clippy_inner<'tcx>(tcx: TyCtxt<'tcx>, def_id: LocalDefId) -> MirForClippyInner<'tcx> {
+fn mir_for_clippy_inner<'tcx>(
+    tcx: TyCtxt<'tcx>,
+    def_id: LocalDefId,
+    min_phase: MirPhase,
+) -> (MirForClippyInner<'tcx>, MirPhase) {
     // These might already be stolen for const fns and coroutines (e.g. async), but should
     // be available for most others.
+    let mut current_phase;
 
     // MIR for const-checking (`mir_const_qualif`).
-    let body = tcx.mir_built(def_id);
-    if !body.is_stolen() {
-        return MirForClippyInner::Unoptimized(body.borrow());
+    current_phase = MirPhase::Built;
+    if current_phase >= min_phase {
+        let body = tcx.mir_built(def_id);
+        if !body.is_stolen() {
+            return (MirForClippyInner::Unoptimized(body.borrow()), current_phase);
+        }
     }
 
     // MIR for borrow-checking (`mir_borrowck`).
-    let (body, _) = tcx.mir_promoted(def_id);
-    if !body.is_stolen() {
-        return MirForClippyInner::Unoptimized(body.borrow());
+    current_phase = MirPhase::Analysis;
+    if current_phase >= min_phase {
+        let (body, _) = tcx.mir_promoted(def_id);
+        if !body.is_stolen() {
+            return (MirForClippyInner::Unoptimized(body.borrow()), current_phase);
+        }
     }
 
     // MIR right before CTFE/optimizations.
-    let body = tcx.mir_drops_elaborated_and_const_checked(def_id);
-    if !body.is_stolen() {
-        return MirForClippyInner::Unoptimized(body.borrow());
+    current_phase = MirPhase::Runtime;
+    if current_phase >= min_phase {
+        let body = tcx.mir_drops_elaborated_and_const_checked(def_id);
+        if !body.is_stolen() {
+            return (MirForClippyInner::Unoptimized(body.borrow()), current_phase);
+        }
     }
 
     // eprintln!("calling optimized_mir for {def_id:#?}");
-    MirForClippyInner::Optimized(tcx.optimized_mir(def_id))
+    current_phase = MirPhase::Optimized;
+    let body = tcx.optimized_mir(def_id);
+    (MirForClippyInner::Optimized(body), current_phase)
 }
 
 #[derive(Clone, Debug, Default)]

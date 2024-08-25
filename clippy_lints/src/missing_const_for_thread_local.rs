@@ -2,11 +2,11 @@ use clippy_config::msrvs::{self, Msrv};
 use clippy_config::Conf;
 use clippy_utils::diagnostics::span_lint_and_sugg;
 use clippy_utils::macros::macro_backtrace;
-use clippy_utils::mir::mir_for_clippy;
 use clippy_utils::qualify_min_const_fn::is_min_const_fn;
 use clippy_utils::source::snippet;
 use clippy_utils::{fn_has_unsatisfiable_preds, peel_blocks};
 use rustc_errors::Applicability;
+use rustc_hir::def_id::LocalDefId;
 use rustc_hir::{intravisit, Expr, ExprKind};
 use rustc_lint::{LateContext, LateLintPass};
 use rustc_session::impl_lint_pass;
@@ -94,15 +94,9 @@ fn is_unreachable(cx: &LateContext<'_>, expr: &Expr<'_>) -> bool {
 }
 
 #[inline]
-fn initializer_can_be_made_const(cx: &LateContext<'_>, defid: rustc_span::def_id::DefId, msrv: &Msrv) -> bool {
+fn initializer_can_be_made_const(cx: &LateContext<'_>, def_id: LocalDefId, msrv: &Msrv) -> bool {
     // Building MIR for `fn`s with unsatisfiable preds results in ICE.
-    if !fn_has_unsatisfiable_preds(cx, defid)
-        && let mir = mir_for_clippy(cx.tcx, defid.expect_local())
-        && is_min_const_fn(cx.tcx, &mir, msrv)
-    {
-        return true;
-    }
-    false
+    !fn_has_unsatisfiable_preds(cx, def_id.to_def_id()) && is_min_const_fn(cx.tcx, def_id, msrv)
 }
 
 impl<'tcx> LateLintPass<'tcx> for MissingConstForThreadLocal {
@@ -113,7 +107,7 @@ impl<'tcx> LateLintPass<'tcx> for MissingConstForThreadLocal {
         _: &'tcx rustc_hir::FnDecl<'tcx>,
         body: &'tcx rustc_hir::Body<'tcx>,
         span: rustc_span::Span,
-        local_defid: rustc_span::def_id::LocalDefId,
+        local_defid: LocalDefId,
     ) {
         let defid = local_defid.to_def_id();
         if self.msrv.meets(msrvs::THREAD_LOCAL_CONST_INIT)
@@ -134,7 +128,7 @@ impl<'tcx> LateLintPass<'tcx> for MissingConstForThreadLocal {
             // https://github.com/rust-lang/rust-clippy/issues/12637
             // we ensure that this is reachable before we check in mir
             && !is_unreachable(cx, ret_expr)
-            && initializer_can_be_made_const(cx, defid, &self.msrv)
+            && initializer_can_be_made_const(cx, local_defid, &self.msrv)
             // we know that the function is const-qualifiable, so now
             // we need only to get the initializer expression to span-lint it.
             && let initializer_snippet = snippet(cx, ret_expr.span, "thread_local! { ... }")
